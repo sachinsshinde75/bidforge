@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidForge — GMLR Phase IV Bid Walkthrough</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0b;
+    --surface: #131316;
+    --surface-2: #1a1a1f;
+    --border: #26262c;
+    --border-2: #34343c;
+    --text: #e8e8ec;
+    --text-2: #9a9aa3;
+    --text-3: #5e5e68;
+    --accent: #f59e0b;
+    --accent-soft: rgba(245, 158, 11, 0.08);
+    --accent-border: rgba(245, 158, 11, 0.3);
+    --ok: #10b981;
+    --ok-soft: rgba(16, 185, 129, 0.1);
+    --warn: #f97316;
+    --warn-soft: rgba(249, 115, 22, 0.1);
+    --crit: #ef4444;
+    --crit-soft: rgba(239, 68, 68, 0.1);
+    --info: #06b6d4;
+    --info-soft: rgba(6, 182, 212, 0.1);
+    --ai: #c084fc;
+    --ai-soft: rgba(192, 132, 252, 0.1);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .mono { font-family: "SF Mono", Monaco, Consolas, "Courier New", monospace; font-variant-numeric: tabular-nums; }
+
+  /* ===== Top bar ===== */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: #0a0a0b; font-size: 14px;
+  }
+  .brand-text { line-height: 1.2; }
+  .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.12em; }
+  .project-info { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text-2); }
+  .project-info .chip { background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; }
+  .project-info .urgent { color: var(--warn); border-color: rgba(249,115,22,0.3); background: var(--warn-soft); }
+
+  /* ===== Stage progress bar ===== */
+  .stage-bar {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px 0;
+  }
+  .stage-bar-title { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 14px; display: flex; justify-content: space-between; }
+  .stages {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .stage {
+    text-align: center;
+    cursor: pointer;
+    padding: 0 8px 16px;
+    border-bottom: 3px solid var(--border);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .stage:hover { border-bottom-color: var(--border-2); }
+  .stage.active { border-bottom-color: var(--accent); }
+  .stage.done { border-bottom-color: var(--ok); }
+  .stage-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px;
+    border: 1px solid var(--border-2);
+    border-radius: 50%;
+    font-size: 12px; font-weight: 600;
+    margin-bottom: 8px;
+    background: var(--surface);
+    color: var(--text-2);
+  }
+  .stage.active .stage-num { background: var(--accent); color: #0a0a0b; border-color: var(--accent); }
+  .stage.done .stage-num { background: var(--ok); color: #0a0a0b; border-color: var(--ok); }
+  .stage-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+  .stage.active .stage-label { color: var(--text); }
+  .stage-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+  /* ===== Agent panel ===== */
+  .agent-panel {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .agent-icon {
+    width: 36px; height: 36px;
+    background: var(--ai-soft);
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+  .agent-info { flex: 1; }
+  .agent-name {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--ai); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+  .agent-name .dot { width: 6px; height: 6px; background: var(--ai); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .agent-msg { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .agent-msg .hl { color: var(--accent); font-weight: 500; }
+  .agent-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--border); border-color: var(--text-3); }
+  .btn.primary { background: var(--accent); color: #0a0a0b; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: #fcb53b; }
+  .btn.ok { background: var(--ok); color: #0a0a0b; border-color: var(--ok); font-weight: 600; }
+
+  /* ===== Main content ===== */
+  .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .stage-content { display: none; }
+  .stage-content.active { display: block; }
+
+  /* Stat cards */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 6px;
+  }
+  .stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+  .stat-value { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-sub { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+  .stat.accent .stat-value { color: var(--accent); }
+  .stat.warn .stat-value { color: var(--warn); }
+  .stat.ok .stat-value { color: var(--ok); }
+
+  /* Cards & sections */
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-2-eq { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-2-eq { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text); }
+  .card-body { padding: 16px; }
+  .card-body.tight { padding: 0; }
+
+  /* Pills */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .pill.ai { background: var(--ai-soft); color: var(--ai); border-color: rgba(192,132,252,0.3); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); border-color: rgba(16,185,129,0.3); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); border-color: rgba(249,115,22,0.3); }
+  .pill.crit { background: var(--crit-soft); color: var(--crit); border-color: rgba(239,68,68,0.3); }
+  .pill.info { background: var(--info-soft); color: var(--info); border-color: rgba(6,182,212,0.3); }
+  .pill.neutral { background: var(--surface-2); color: var(--text-2); border-color: var(--border-2); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th { text-align: left; padding: 10px 14px; font-size: 10px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr:last-child td { border-bottom: none; }
+  .num { text-align: right; }
+
+  /* Confidence bars */
+  .conf-bar { display: inline-flex; align-items: center; gap: 6px; }
+  .conf-track { width: 36px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .conf-fill { height: 100%; background: var(--ok); }
+  .conf-fill.med { background: var(--accent); }
+  .conf-fill.low { background: var(--warn); }
+
+  /* Lists */
+  .list-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .list-row:last-child { border-bottom: none; }
+  .list-row:hover { background: var(--surface-2); }
+  .list-row .body { flex: 1; min-width: 0; }
+  .list-row .title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .list-row .sub { font-size: 12px; color: var(--text-2); }
+  .list-row .right { text-align: right; font-size: 12px; }
+
+  /* Agent insight box */
+  .insight {
+    background: linear-gradient(180deg, var(--ai-soft) 0%, transparent 100%);
+    border: 1px solid rgba(192,132,252,0.25);
+    border-left: 3px solid var(--ai);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .insight .ihead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .insight .ititle { font-size: 13px; font-weight: 600; }
+  .insight p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .insight p .hl { color: var(--ai); font-weight: 500; }
+
+  /* JV bars */
+  .jv-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .jv-row:last-child { border-bottom: none; }
+  .jv-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .jv-bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+  .jv-fill { height: 100%; background: var(--accent); }
+
+  /* Compliance bars */
+  .comp-row { padding: 10px 0; }
+  .comp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
+  .comp-bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+  .comp-fill { height: 100%; background: var(--ok); }
+  .comp-fill.partial { background: var(--accent); }
+
+  /* Doc list */
+  .doc { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .doc:last-child { border-bottom: none; }
+  .doc:hover { background: var(--surface-2); }
+  .doc .name { flex: 1; }
+  .doc .meta { color: var(--text-3); font-size: 11px; }
+
+  /* S-curve mock */
+  .scurve-svg { width: 100%; height: 200px; }
+
+  /* Risk heat cells */
+  .heat { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: 200px; }
+  .heat-cell {
+    aspect-ratio: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    border-radius: 2px;
+  }
+  .heat-cell.l1 { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); }
+  .heat-cell.l2 { background: rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.4); }
+  .heat-cell.l3 { background: rgba(249,115,22,0.25); border-color: rgba(249,115,22,0.5); }
+  .heat-cell.l4 { background: rgba(239,68,68,0.3); border-color: rgba(239,68,68,0.5); }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    font-size: 11px;
+    color: var(--text-3);
+    display: flex; justify-content: space-between; align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .footer .left { display: flex; align-items: center; gap: 16px; }
+  .footer .health { color: var(--ok); display: flex; align-items: center; gap: 6px; }
+  .footer .health::before { content: ""; width: 6px; height: 6px; background: var(--ok); border-radius: 50%; }
+
+  /* Source dots in BOQ */
+  .src-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .src-dot.ai { background: var(--ai); }
+  .src-dot.hist { background: var(--info); }
+  .src-dot.manual { background: var(--text-3); }
+
+  /* Checklist */
+  .check { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .check:last-child { border-bottom: none; }
+  .check-box { width: 16px; height: 16px; border: 1px solid var(--border-2); border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .check.done .check-box { background: var(--ok); border-color: var(--ok); color: #0a0a0b; }
+  .check.done .check-box::after { content: "✓"; font-size: 11px; font-weight: 700; }
+  .check.done .check-label { color: var(--text-3); text-decoration: line-through; }
+
+  @media (max-width: 700px) {
+    .stages { grid-template-columns: repeat(6, minmax(80px, 1fr)); overflow-x: auto; }
+    .stage-bar { padding: 16px 12px 0; }
+    .stage-label { font-size: 10px; }
+    .stage-sub { display: none; }
+    .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
+    .project-info { font-size: 11px; flex-wrap: wrap; gap: 8px; }
+    .agent-panel { flex-wrap: wrap; padding: 12px 16px; }
+    .agent-actions { width: 100%; }
+    .content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">B</div>
+    <div class="brand-text">
+      <div class="brand-name">BidForge</div>
+      <div class="brand-sub">HCC Tendering Platform</div>
+    </div>
+  </div>
+  <div class="project-info">
+    <span class="chip">📁 GMLR Phase IV</span>
+    <span class="chip">🏛 BMC</span>
+    <span class="chip">📍 Mumbai</span>
+    <span class="chip urgent">⏱ D-43</span>
+  </div>
+</div>
+
+<!-- STAGE BAR -->
+<div class="stage-bar">
+  <div class="stage-bar-title">
+    <span>Bid lifecycle — Goregaon-Mulund Link Road Phase IV · ₹1,662 Cr</span>
+    <span>Click any stage to jump · Demo project</span>
+  </div>
+  <div class="stages" id="stages">
+    <div class="stage active" data-stage="1"><div class="stage-num">1</div><div class="stage-label">RFP Intake</div><div class="stage-sub">Auto-extraction</div></div>
+    <div class="stage" data-stage="2"><div class="stage-num">2</div><div class="stage-label">Eligibility</div><div class="stage-sub">Go / No-Go</div></div>
+    <div class="stage" data-stage="3"><div class="stage-num">3</div><div class="stage-label">BOQ & Costing</div><div class="stage-sub">Rate build-up</div></div>
+    <div class="stage" data-stage="4"><div class="stage-num">4</div><div class="stage-label">Risk & Resource</div><div class="stage-sub">Plan + S-curve</div></div>
+    <div class="stage" data-stage="5"><div class="stage-num">5</div><div class="stage-label">JV & Drafting</div><div class="stage-sub">Proposal docs</div></div>
+    <div class="stage" data-stage="6"><div class="stage-num">6</div><div class="stage-label">Compliance</div><div class="stage-sub">Submit</div></div>
+  </div>
+</div>
+
+<!-- AGENT PANEL -->
+<div class="agent-panel" id="agent-panel">
+  <!-- populated by JS -->
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ========== STAGE 1: RFP INTAKE ========== -->
+<div class="stage-content active" id="content-1">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">RFP pages</div><div class="stat-value mono">384</div><div class="stat-sub">+ 47 annexures, 12 drawings</div></div>
+    <div class="stat"><div class="stat-label">BOQ items extracted</div><div class="stat-value mono">1,240</div><div class="stat-sub">98.2% confidence</div></div>
+    <div class="stat warn"><div class="stat-label">Deviations flagged</div><div class="stat-value mono">7</div><div class="stat-sub">3 critical · 4 warnings</div></div>
+    <div class="stat"><div class="stat-label">Ceiling value</div><div class="stat-value mono">₹1,662</div><div class="stat-sub">Cr · BMC estimate</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Intake Agent</span><span class="ititle">RFP parsed and structured — ready for estimation</span></div>
+    <p>I extracted <span class="hl">1,240 BOQ line items</span> across 8 work packages, identified the <span class="hl">JV requirement (49/51 split)</span>, parsed BMC's special conditions, and matched <span class="hl">5 comparable HCC projects</span> for rate benchmarking. Three FIDIC deviations need senior review before pricing. Eligibility check looks clear.</p>
+  </div>
+
+  <div class="grid-2-eq">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Auto-extracted scope</div><span class="pill ai">AI</span></div>
+      <div class="card-body tight">
+        <div class="list-row"><div class="body"><div class="title">Project type</div><div class="sub">Urban road · flyover · interchange</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:98%"></div></div><span class="mono">98%</span></div></div>
+        <div class="list-row"><div class="body"><div class="title">Total alignment</div><div class="sub">8.92 km · Phase I + II combined</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:96%"></div></div><span class="mono">96%</span></div></div>
+        <div class="list-row"><div class="body"><div class="title">Flyover length</div><div class="sub">1,330 m elevated · 6-lane</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:99%"></div></div><span class="mono">99%</span></div></div>
+        <div class="list-row"><div class="body"><div class="title">Cable-stayed span</div><div class="sub">180 m main span over arterial road</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill med" style="width:84%"></div></div><span class="mono">84%</span></div></div>
+        <div class="list-row"><div class="body"><div class="title">Cloverleaf interchange</div><div class="sub">2,400 m loop + 3,600 m free-left</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:94%"></div></div><span class="mono">94%</span></div></div>
+        <div class="list-row"><div class="body"><div class="title">Completion period</div><div class="sub">36 months from LOA · LD 0.05%/week</div></div><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:100%"></div></div><span class="mono">100%</span></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">FIDIC deviations flagged</div><span class="pill warn">7 items</span></div>
+      <div class="card-body tight">
+        <div class="list-row"><div class="body"><span class="pill crit">Critical</span><div class="title" style="margin-top:6px">Clause 14.3 — Force majeure excludes monsoon delays</div><div class="sub">Mumbai monsoon costs +5-8% schedule risk</div></div></div>
+        <div class="list-row"><div class="body"><span class="pill crit">Critical</span><div class="title" style="margin-top:6px">Clause 22.1 — Utility relocation risk on contractor</div><div class="sub">No utility survey provided · raise pre-bid query</div></div></div>
+        <div class="list-row"><div class="body"><span class="pill crit">Critical</span><div class="title" style="margin-top:6px">Clause 8.4 — Mobilisation advance capped at 5%</div><div class="sub">HCC standard 10% · ₹83 Cr working capital impact</div></div></div>
+        <div class="list-row"><div class="body"><span class="pill warn">Warning</span><div class="title" style="margin-top:6px">Annexure VII — Equipment specs missing</div><div class="sub">Pre-bid query #4 raised</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STAGE 2: ELIGIBILITY ========== -->
+<div class="stage-content" id="content-2">
+  <div class="stats">
+    <div class="stat ok"><div class="stat-label">Eligibility status</div><div class="stat-value">PASS</div><div class="stat-sub">5 of 5 criteria met</div></div>
+    <div class="stat"><div class="stat-label">Win probability</div><div class="stat-value mono">62%</div><div class="stat-sub">vs L&T, Afcons, Tata Projects</div></div>
+    <div class="stat"><div class="stat-label">Bid prep effort</div><div class="stat-value mono">14d</div><div class="stat-sub">Est. team-days remaining</div></div>
+    <div class="stat accent"><div class="stat-label">Recommendation</div><div class="stat-value" style="font-size:20px">GO</div><div class="stat-sub">Agent confidence 84%</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Eligibility Agent</span><span class="ititle">All eligibility thresholds cleared — recommend proceed</span></div>
+    <p>HCC meets <span class="hl">5 of 5 eligibility criteria</span> with substantial headroom. Competitive landscape: 4 likely bidders, of which L&T is the strongest. Our advantage: <span class="hl">recent Mumbai Coastal Road execution</span> gives us local mobilisation cost edge of ~3.5%. Recommend GO with senior pricing review at Stage 3.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Eligibility criteria vs HCC capability</div><span class="pill ok">All passed</span></div>
+    <div class="card-body tight">
+      <div class="list-row"><div class="body"><div class="title">Avg annual turnover ≥ ₹830 Cr (last 3 FYs)</div><div class="sub">HCC FY24 group turnover: ₹9,437 Cr</div></div><div class="right"><span class="pill ok">✓ PASS</span><div class="mono" style="margin-top:4px;color:var(--ok)">11.4× headroom</div></div></div>
+      <div class="list-row"><div class="body"><div class="title">Similar work ≥ ₹665 Cr in last 7 yrs</div><div class="sub">Mumbai Coastal Road Pkg-4 (₹2,200 Cr, 2019)</div></div><div class="right"><span class="pill ok">✓ PASS</span><div class="mono" style="margin-top:4px;color:var(--ok)">3.3×</div></div></div>
+      <div class="list-row"><div class="body"><div class="title">Cable-stayed bridge experience</div><div class="sub">Bandra-Worli Sea Link approach + Bogibeel</div></div><div class="right"><span class="pill ok">✓ PASS</span></div></div>
+      <div class="list-row"><div class="body"><div class="title">Net worth positive in last audited FY</div><div class="sub">FY24 audited: ₹1,180 Cr net worth</div></div><div class="right"><span class="pill ok">✓ PASS</span></div></div>
+      <div class="list-row"><div class="body"><div class="title">Banker line of credit ≥ ₹125 Cr</div><div class="sub">SBI + Axis joint LoC: ₹420 Cr</div></div><div class="right"><span class="pill ok">✓ PASS</span></div></div>
+    </div>
+  </div>
+
+  <div style="height:16px"></div>
+
+  <div class="grid-2-eq">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Competitive landscape</div><span class="pill ai">AI assessment</span></div>
+      <div class="card-body">
+        <div class="list-row" style="padding:10px 0"><div class="body"><div class="title">L&T Construction</div><div class="sub">Strong urban infra; recent BMC win on PWD road</div></div><div class="right"><span class="pill warn">Strong</span></div></div>
+        <div class="list-row" style="padding:10px 0"><div class="body"><div class="title">Afcons Infrastructure</div><div class="sub">Cable-stayed expertise · Chenab Bridge</div></div><div class="right"><span class="pill warn">Strong</span></div></div>
+        <div class="list-row" style="padding:10px 0"><div class="body"><div class="title">Tata Projects</div><div class="sub">Mid-tier; aggressive pricing pattern</div></div><div class="right"><span class="pill info">Medium</span></div></div>
+        <div class="list-row" style="padding:10px 0"><div class="body"><div class="title">J Kumar Infra</div><div class="sub">Likely L1 contender; thin margins</div></div><div class="right"><span class="pill info">Medium</span></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">HCC's strategic edge</div><span class="pill ai">AI synthesis</span></div>
+      <div class="card-body">
+        <div style="font-size:13px;line-height:1.7;color:var(--text-2)">
+          <div style="margin-bottom:10px"><span style="color:var(--ok)">+</span> <strong style="color:var(--text)">Local mobilisation</strong> — Coastal Road yard at Worli still active, equipment redeployable</div>
+          <div style="margin-bottom:10px"><span style="color:var(--ok)">+</span> <strong style="color:var(--text)">Cable-stayed track record</strong> — Bogibeel + Sea Link approach</div>
+          <div style="margin-bottom:10px"><span style="color:var(--ok)">+</span> <strong style="color:var(--text)">JV with Aakshya</strong> — pre-existing relationship from GMLR Phase II</div>
+          <div style="margin-bottom:10px"><span style="color:var(--warn)">!</span> <strong style="color:var(--text)">Liquidity tight</strong> — BG capacity 78% utilised currently</div>
+          <div><span style="color:var(--warn)">!</span> <strong style="color:var(--text)">Steel inventory low</strong> — procurement lead time 90 days</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STAGE 3: BOQ & COSTING ========== -->
+<div class="stage-content" id="content-3">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Direct cost</div><div class="stat-value mono">₹1,536</div><div class="stat-sub">Cr · 1,240 BOQ items priced</div></div>
+    <div class="stat"><div class="stat-label">Overheads</div><div class="stat-value mono">₹284</div><div class="stat-sub">17.2% loading</div></div>
+    <div class="stat warn"><div class="stat-label">Contingency</div><div class="stat-value mono">₹148</div><div class="stat-sub">9.0% (Risk Agent)</div></div>
+    <div class="stat accent"><div class="stat-label">Suggested bid</div><div class="stat-value mono">₹1,968</div><div class="stat-sub">11.4% margin · vs ₹1,662 ceiling</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Estimation Agent</span><span class="ititle">Margin pressure detected — bid exceeds BMC ceiling by ₹306 Cr</span></div>
+    <p>Build-up totals <span class="hl">₹1,968 Cr</span> against ceiling ₹1,662 Cr. Three rescoping options available: re-spec cable-stayed to PSC alternative (saves ₹84 Cr), shift utilities scope to JV partner Aakshya (saves ₹62 Cr to HCC P&L), or aggressive pier rates (saves ₹38 Cr, +0.4% risk). Recommend a combination to reach ₹1,640 Cr with 7.5% margin.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">BOQ build-up · top line items</div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--text-2)">
+        <span><span class="src-dot ai"></span>AI-suggested (8)</span>
+        <span><span class="src-dot hist"></span>Historical (3)</span>
+        <span><span class="src-dot manual"></span>Manual (1)</span>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Code</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate (₹)</th><th>Source</th><th>Conf.</th><th class="num">Value (₹ Cr)</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="mono" style="color:var(--text-3)">A.01</td><td>Site clearance, dismantling, traffic diversion</td><td class="num mono">1</td><td>LS</td><td class="num mono">84,20,000</td><td><span class="src-dot ai"></span>AI</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:92%"></div></div><span class="mono" style="font-size:10px">92</span></div></td><td class="num mono"><strong>84.2</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">B.02</td><td>Excavation — rock (controlled blasting)</td><td class="num mono">38,500</td><td>m³</td><td class="num mono">1,840</td><td><span class="src-dot hist"></span>HIST</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:94%"></div></div><span class="mono" style="font-size:10px">94</span></div></td><td class="num mono"><strong>70.8</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">C.01</td><td>Pile foundation — bored cast-in-situ 1.2m dia</td><td class="num mono">18,400</td><td>m</td><td class="num mono">22,400</td><td><span class="src-dot ai"></span>AI</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill med" style="width:88%"></div></div><span class="mono" style="font-size:10px">88</span></div></td><td class="num mono"><strong>412.2</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">D.01</td><td>Flyover piers — M50, segmental</td><td class="num mono">8,400</td><td>m³</td><td class="num mono">24,600</td><td><span class="src-dot ai"></span>AI</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill med" style="width:85%"></div></div><span class="mono" style="font-size:10px">85</span></div></td><td class="num mono"><strong>206.6</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">E.01</td><td>PSC box girder — pre-cast, span-by-span</td><td class="num mono">28,600</td><td>m³</td><td class="num mono">38,400</td><td><span class="src-dot ai"></span>AI</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill med" style="width:82%"></div></div><span class="mono" style="font-size:10px">82</span></div></td><td class="num mono"><strong>1,098.2</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">E.02</td><td>Cable-stayed span — 180m, structural steel</td><td class="num mono">1</td><td>LS</td><td class="num mono">18,40,00,000</td><td><span class="src-dot manual"></span>MAN</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill low" style="width:70%"></div></div><span class="mono" style="font-size:10px">70</span></div></td><td class="num mono"><strong>184.0</strong></td></tr>
+        <tr><td class="mono" style="color:var(--text-3)">F.01</td><td>Cloverleaf interchange — ramps & loops</td><td class="num mono">2,400</td><td>m</td><td class="num mono">86,000</td><td><span class="src-dot ai"></span>AI</td><td><div class="conf-bar"><div class="conf-track"><div class="conf-fill low" style="width:79%"></div></div><span class="mono" style="font-size:10px">79</span></div></td><td class="num mono"><strong>206.4</strong></td></tr>
+        <tr style="background:var(--surface-2);border-top:2px solid var(--border-2)"><td colspan="7" class="num" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-2);font-weight:600">Subtotal direct (sample shown · 7 of 1,240 items)</td><td class="num mono" style="color:var(--accent);font-weight:700;font-size:14px">2,262.4</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2-eq">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Rate benchmarks · Mumbai Coastal Road</div><span class="pill info">Historical</span></div>
+      <div class="card-body">
+        <div style="font-size:13px">
+          <div class="list-row" style="padding:8px 0"><div class="body"><div class="title">Bored pile 1.2m dia</div><div class="sub">Coastal Road Pkg-4 (2019) · ₹19,800/m</div></div><div class="right"><div class="mono" style="color:var(--accent)">+13.1%</div><div class="sub">vs current ₹22,400</div></div></div>
+          <div class="list-row" style="padding:8px 0"><div class="body"><div class="title">PSC box girder</div><div class="sub">Versova-Bandra Sea Link (2022) · ₹36,200/m³</div></div><div class="right"><div class="mono" style="color:var(--accent)">+6.1%</div></div></div>
+          <div class="list-row" style="padding:8px 0"><div class="body"><div class="title">Flyover pier M50</div><div class="sub">Coastal Road Pkg-4 · ₹22,100/m³</div></div><div class="right"><div class="mono" style="color:var(--accent)">+11.3%</div></div></div>
+          <div class="list-row" style="padding:8px 0"><div class="body"><div class="title">Cloverleaf interchange</div><div class="sub">Mumbai-Pune Expy widening · ₹78,000/m</div></div><div class="right"><div class="mono" style="color:var(--accent)">+10.3%</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Cost composition</div><span class="pill neutral">Direct only</span></div>
+      <div class="card-body">
+        <svg viewBox="0 0 200 200" style="width:160px;height:160px;display:block;margin:0 auto 12px">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="var(--border)" stroke-width="40"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#f59e0b" stroke-width="40" stroke-dasharray="290 503" transform="rotate(-90 100 100)"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#06b6d4" stroke-width="40" stroke-dasharray="65 503" stroke-dashoffset="-290" transform="rotate(-90 100 100)"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#c084fc" stroke-width="40" stroke-dasharray="100 503" stroke-dashoffset="-355" transform="rotate(-90 100 100)"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#10b981" stroke-width="40" stroke-dasharray="48 503" stroke-dashoffset="-455" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div style="font-size:12px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;vertical-align:-1px;margin-right:6px"></span>Civil & structural</span><span class="mono">₹1,089 (58%)</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span><span style="display:inline-block;width:10px;height:10px;background:#06b6d4;vertical-align:-1px;margin-right:6px"></span>Earthwork</span><span class="mono">₹199 (13%)</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span><span style="display:inline-block;width:10px;height:10px;background:#c084fc;vertical-align:-1px;margin-right:6px"></span>Roads & utilities</span><span class="mono">₹228 (20%)</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span><span style="display:inline-block;width:10px;height:10px;background:#10b981;vertical-align:-1px;margin-right:6px"></span>Mobilisation</span><span class="mono">₹84 (9%)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STAGE 4: RISK & RESOURCE ========== -->
+<div class="stage-content" id="content-4">
+  <div class="stats">
+    <div class="stat warn"><div class="stat-label">Open risks</div><div class="stat-value mono">5 of 8</div><div class="stat-sub">₹268 Cr exposure</div></div>
+    <div class="stat"><div class="stat-label">Contingency provision</div><div class="stat-value mono">9.0%</div><div class="stat-sub">₹148 Cr provisioned</div></div>
+    <div class="stat"><div class="stat-label">Peak manpower</div><div class="stat-value mono">2,184</div><div class="stat-sub">@ Month 18</div></div>
+    <div class="stat"><div class="stat-label">Equipment items</div><div class="stat-value mono">64</div><div class="stat-sub">31 committed · 33 planned</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Risk Agent</span><span class="ititle">Utility relocation and steel escalation drive 71% of risk exposure</span></div>
+    <p>R-01 (utility relocation, no survey provided) and R-04 (steel price escalation) together account for <span class="hl">₹191 Cr of ₹268 Cr exposure</span>. Recommend: (a) raise pre-bid query for utility maps before BMC closing date, (b) lock <span class="hl">forward steel contracts</span> for the first 24 months at LOA (saves ~₹28 Cr), (c) sponsor third-party utility insurance (~0.4% premium).</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Risk register · top exposures</div><span class="pill warn">5 open</span></div>
+      <table>
+        <thead><tr><th>ID</th><th>Risk</th><th>P × I</th><th class="num">Exposure</th><th>Owner</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="mono" style="color:var(--text-3)">R-01</td><td><div class="title" style="font-size:12px;font-weight:500">Utility relocation — no survey provided</div><div class="sub" style="font-size:11px">Pre-bid query · third-party insurance</div></td><td><span class="pill crit">H×H</span></td><td class="num mono">₹98</td><td style="font-size:12px">Tech</td><td><span class="pill warn">Open</span></td></tr>
+          <tr><td class="mono" style="color:var(--text-3)">R-04</td><td><div class="title" style="font-size:12px;font-weight:500">Steel & cement escalation beyond PVC</div><div class="sub" style="font-size:11px">Forward contracts Y1-Y2 · bulk procurement at LOA</div></td><td><span class="pill warn">M×H</span></td><td class="num mono">₹93</td><td style="font-size:12px">Commercial</td><td><span class="pill warn">Open</span></td></tr>
+          <tr><td class="mono" style="color:var(--text-3)">R-07</td><td><div class="title" style="font-size:12px;font-weight:500">Mumbai monsoon — 4 months reduced productivity</div><div class="sub" style="font-size:11px">Schedule compression · covered pre-cast yard</div></td><td><span class="pill warn">C×M</span></td><td class="num mono">₹42</td><td style="font-size:12px">Ops</td><td><span class="pill warn">Open</span></td></tr>
+          <tr><td class="mono" style="color:var(--text-3)">R-02</td><td><div class="title" style="font-size:12px;font-weight:500">Traffic diversion approvals delay</div><div class="sub" style="font-size:11px">MoU with traffic police · phased plan</div></td><td><span class="pill warn">H×M</span></td><td class="num mono">₹35</td><td style="font-size:12px">External</td><td><span class="pill ok">Mitigated</span></td></tr>
+          <tr><td class="mono" style="color:var(--text-3)">R-08</td><td><div class="title" style="font-size:12px;font-weight:500">Cable-stayed steel supplier dependency</div><div class="sub" style="font-size:11px">Dual-source · JSL + Tata Structura</div></td><td><span class="pill warn">M×H</span></td><td class="num mono">₹38</td><td style="font-size:12px">Commercial</td><td><span class="pill warn">Open</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><div class="card-title">Risk heat map</div></div>
+        <div class="card-body">
+          <div class="heat">
+            <!-- 5x5 grid: top row = highest impact -->
+            <div class="heat-cell l4">1</div><div class="heat-cell l4">2</div><div class="heat-cell l3"></div><div class="heat-cell l2"></div><div class="heat-cell l1"></div>
+            <div class="heat-cell l4"></div><div class="heat-cell l3">1</div><div class="heat-cell l2"></div><div class="heat-cell l2"></div><div class="heat-cell l1"></div>
+            <div class="heat-cell l3"></div><div class="heat-cell l2">1</div><div class="heat-cell l2"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div>
+            <div class="heat-cell l2"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div>
+            <div class="heat-cell l1"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div><div class="heat-cell l1"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:10px;text-transform:uppercase;letter-spacing:0.1em"><span>← Impact</span><span>Probability ↑</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">Plant & machinery</div><span class="pill ai">Resource Agent</span></div>
+        <div class="card-body" style="padding:0">
+          <div class="list-row" style="padding:10px 16px"><div class="body"><div class="title" style="font-size:12px">Tower crane 60t</div></div><div class="right"><span class="mono">×6</span> <span class="pill ok">Committed</span></div></div>
+          <div class="list-row" style="padding:10px 16px"><div class="body"><div class="title" style="font-size:12px">Batching plant 60 m³/hr</div></div><div class="right"><span class="mono">×3</span> <span class="pill ok">Committed</span></div></div>
+          <div class="list-row" style="padding:10px 16px"><div class="body"><div class="title" style="font-size:12px">Pre-cast yard (segmental)</div></div><div class="right"><span class="mono">×1</span> <span class="pill info">Planned</span></div></div>
+          <div class="list-row" style="padding:10px 16px"><div class="body"><div class="title" style="font-size:12px">Launching girder</div></div><div class="right"><span class="mono">×2</span> <span class="pill info">Planned</span></div></div>
+          <div class="list-row" style="padding:10px 16px"><div class="body"><div class="title" style="font-size:12px">Piling rigs hydraulic</div></div><div class="right"><span class="mono">×8</span> <span class="pill ok">Committed</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-head"><div class="card-title">Manpower S-curve · 36 months</div><span class="pill ai">Resource Agent forecast</span></div>
+    <div class="card-body">
+      <svg class="scurve-svg" viewBox="0 0 800 200" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="scurve-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- gridlines -->
+        <line x1="0" y1="40" x2="800" y2="40" stroke="#26262c" stroke-dasharray="2 4"/>
+        <line x1="0" y1="100" x2="800" y2="100" stroke="#26262c" stroke-dasharray="2 4"/>
+        <line x1="0" y1="160" x2="800" y2="160" stroke="#26262c" stroke-dasharray="2 4"/>
+        <!-- s-curve area -->
+        <path d="M 0 195 Q 100 195 150 175 T 280 110 T 420 50 T 560 55 T 700 130 T 800 195 L 800 200 L 0 200 Z" fill="url(#scurve-grad)"/>
+        <path d="M 0 195 Q 100 195 150 175 T 280 110 T 420 50 T 560 55 T 700 130 T 800 195" fill="none" stroke="#f59e0b" stroke-width="2"/>
+        <!-- peak marker -->
+        <circle cx="480" cy="46" r="4" fill="#f59e0b"/>
+        <text x="490" y="40" fill="#f59e0b" font-size="11" font-family="monospace">Peak: 2,184 @ M18</text>
+        <!-- x labels -->
+        <text x="0" y="195" fill="#5e5e68" font-size="10">M0</text>
+        <text x="200" y="195" fill="#5e5e68" font-size="10">M9</text>
+        <text x="400" y="195" fill="#5e5e68" font-size="10">M18</text>
+        <text x="600" y="195" fill="#5e5e68" font-size="10">M27</text>
+        <text x="770" y="195" fill="#5e5e68" font-size="10">M36</text>
+      </svg>
+      <div style="display:flex;justify-content:space-around;font-size:11px;color:var(--text-2);margin-top:8px;border-top:1px solid var(--border);padding-top:10px">
+        <span><strong style="color:var(--text)">Engineers</strong> peak 142</span>
+        <span><strong style="color:var(--text)">Supervisors</strong> peak 218</span>
+        <span><strong style="color:var(--text)">Skilled</strong> peak 824</span>
+        <span><strong style="color:var(--text)">Unskilled</strong> peak 1,000</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STAGE 5: JV & DRAFTING ========== -->
+<div class="stage-content" id="content-5">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">JV structure</div><div class="stat-value" style="font-size:18px">Aakshya · HCC</div><div class="stat-sub">51 / 49 split (BMC requirement)</div></div>
+    <div class="stat"><div class="stat-label">HCC contribution</div><div class="stat-value mono">₹814</div><div class="stat-sub">Cr · scope-weighted</div></div>
+    <div class="stat"><div class="stat-label">Proposal docs</div><div class="stat-value mono">12 of 14</div><div class="stat-sub">Drafted by AI · 2 in review</div></div>
+    <div class="stat ok"><div class="stat-label">Drafting progress</div><div class="stat-value mono">86%</div><div class="stat-sub">Estimated 4 days to final</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Drafting Agent</span><span class="ititle">Technical proposal sections drafted from comparable HCC bids</span></div>
+    <p>I've drafted <span class="hl">12 of 14 proposal documents</span> using methodology language from HCC's Coastal Road Pkg-4 and Bogibeel submissions. Construction Programme (Vol III) needs Planning Engineer review for monsoon scheduling. Commercial Vol VI is locked pending final pricing decision from Project Director. JV agreement template populated, ready for legal review.</p>
+  </div>
+
+  <div class="grid-2-eq">
+    <div class="card">
+      <div class="card-head"><div class="card-title">JV cost-split · Aakshya × HCC</div><span class="pill info">Per BMC clause 3.2</span></div>
+      <div class="card-body">
+        <div class="jv-row">
+          <div class="jv-head"><span style="font-weight:600">Aakshya Infra</span><span class="mono" style="color:var(--accent)">51%</span></div>
+          <div class="jv-bar"><div class="jv-fill" style="width:51%"></div></div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:8px">At-grade roads · utilities · traffic management · drainage · street lighting</div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px"><span style="color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;font-size:10px">Contribution</span><span class="mono">₹848 Cr</span></div>
+        </div>
+        <div class="jv-row">
+          <div class="jv-head"><span style="font-weight:600">HCC Ltd</span><span class="mono" style="color:var(--accent)">49%</span></div>
+          <div class="jv-bar"><div class="jv-fill" style="width:49%;background:var(--info)"></div></div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:8px">Cable-stayed span · segmental piers · cloverleaf engineering · pre-cast yard</div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px"><span style="color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;font-size:10px">Contribution</span><span class="mono">₹814 Cr</span></div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;display:flex;justify-content:space-between">
+          <span style="color:var(--text-2)">Risk-weighted margin (HCC scope)</span><span class="mono" style="color:var(--accent);font-weight:600">12.3%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Proposal documents</div><span class="pill ai">Drafting Agent active</span></div>
+      <div class="card-body tight">
+        <div class="doc"><span>📄</span><div class="name">Vol I — Technical Proposal.docx<div class="meta">412 pages · drafted 2h ago</div></div><span class="pill ok">Final</span></div>
+        <div class="doc"><span>📄</span><div class="name">Vol II — Eligibility & Financial.docx<div class="meta">86 pages · drafted 4h ago</div></div><span class="pill ok">Final</span></div>
+        <div class="doc"><span>📄</span><div class="name">Vol III — Methodology.docx<div class="meta">156 pages · drafted 1h ago</div></div><span class="pill info">In review</span></div>
+        <div class="doc"><span>📄</span><div class="name">Vol IV — Programme & Resources.docx<div class="meta">98 pages · drafted 3h ago</div></div><span class="pill info">In review</span></div>
+        <div class="doc"><span>📄</span><div class="name">Vol V — QA/QC, Safety, Environment.docx<div class="meta">112 pages · drafted 5h ago</div></div><span class="pill ok">Final</span></div>
+        <div class="doc"><span>🔒</span><div class="name">Vol VI — Commercial (Price Bid).xlsx<div class="meta">18 pages · awaiting director sign-off</div></div><span class="pill neutral">Locked</span></div>
+        <div class="doc"><span>📄</span><div class="name">JV Agreement — Aakshya × HCC.docx<div class="meta">24 pages · template populated</div></div><span class="pill warn">Legal review</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-head"><div class="card-title">Auto-drafted methodology — Sample (Vol III, Cable-Stayed Span)</div><span class="pill ai">AI-generated from past bids</span></div>
+    <div class="card-body" style="font-size:12px;color:var(--text-2);line-height:1.7;font-family:Georgia,serif">
+      <p style="margin-bottom:10px"><strong style="color:var(--text)">5.3.2 Cable-Stayed Span Construction Methodology</strong></p>
+      <p style="margin-bottom:10px">The 180m cable-stayed span will be executed using the cantilever method, building outward from both pylons toward the centre using temporary stay-cable arrangements. Erection will progress in 6m segments, with each segment cast in-situ over a movable steel form-traveller assembly. This approach draws directly from HCC's execution methodology on the Bogibeel Rail-Cum-Road Bridge (Assam, 2018) and the cable-stayed approach span at Bandra-Worli Sea Link.</p>
+      <p style="margin-bottom:10px">Stay cables will be supplied by Freyssinet International and installed in stages, with iterative stress-monitoring at each cycle. Pylon construction will use jump-form shuttering with M60-grade self-compacting concrete. Geometry will be controlled through real-time GPS-aided survey at each segment, with form correction calculations performed by an external bridge-engineering consultant (anticipated: COWI A/S, Denmark, per HCC framework agreement).</p>
+      <p style="color:var(--ai);font-size:11px;font-style:italic">▸ Drafted from: Bogibeel methodology (2014), Sea Link approach methodology (2007). 87% wording overlap allowed; HCC house style applied.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STAGE 6: COMPLIANCE & SUBMISSION ========== -->
+<div class="stage-content" id="content-6">
+  <div class="stats">
+    <div class="stat ok"><div class="stat-label">Submission readiness</div><div class="stat-value mono">96%</div><div class="stat-sub">298 of 311 checks passed</div></div>
+    <div class="stat warn"><div class="stat-label">Flagged for review</div><div class="stat-value mono">6</div><div class="stat-sub">2 require director sign-off</div></div>
+    <div class="stat"><div class="stat-label">EMD prepared</div><div class="stat-value mono">₹16.6</div><div class="stat-sub">Cr · DD from Axis Bank</div></div>
+    <div class="stat accent"><div class="stat-label">Submission deadline</div><div class="stat-value">D-43</div><div class="stat-sub">08 Jul 2026 · 15:00 IST</div></div>
+  </div>
+
+  <div class="insight">
+    <div class="ihead"><span class="pill ai">✨ Compliance Agent</span><span class="ititle">Final-mile checks complete — ready for director authorization</span></div>
+    <p>All <span class="hl">311 compliance items</span> across 7 RFP volumes have been verified against BMC's prescribed format. Six items remain flagged: 4 cosmetic (formatting on annexures), 2 substantive (final BG validity dates pending bank confirmation, board resolution signature). All <span class="hl">cross-references between volumes</span> verified consistent. Bid pack ready for ZIP export and physical printing.</p>
+  </div>
+
+  <div class="grid-2-eq">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Compliance matrix · 7 volumes</div><span class="pill ok">96% complete</span></div>
+      <div class="card-body">
+        <div class="comp-row"><div class="comp-head"><span>Vol I — Technical Submission</span><span class="mono" style="color:var(--text-2)">84 / 84</span></div><div class="comp-bar"><div class="comp-fill" style="width:100%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Vol II — Eligibility & Financial</span><span class="mono" style="color:var(--text-2)">31 / 31</span></div><div class="comp-bar"><div class="comp-fill" style="width:100%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Vol III — Methodology</span><span class="mono" style="color:var(--text-2)">41 / 42 · <span style="color:var(--warn)">1 flag</span></span></div><div class="comp-bar"><div class="comp-fill partial" style="width:97%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Vol IV — Programme & Resources</span><span class="mono" style="color:var(--text-2)">28 / 28</span></div><div class="comp-bar"><div class="comp-fill" style="width:100%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Vol V — QA/QC/Safety/Environment</span><span class="mono" style="color:var(--text-2)">54 / 56 · <span style="color:var(--warn)">2 flags</span></span></div><div class="comp-bar"><div class="comp-fill partial" style="width:96%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Vol VI — Commercial</span><span class="mono" style="color:var(--text-2)">18 / 19 · <span style="color:var(--warn)">1 flag</span></span></div><div class="comp-bar"><div class="comp-fill partial" style="width:94%"></div></div></div>
+        <div class="comp-row"><div class="comp-head"><span>Annexures (forms, declarations, BGs)</span><span class="mono" style="color:var(--text-2)">42 / 47 · <span style="color:var(--warn)">5 flags</span></span></div><div class="comp-bar"><div class="comp-fill partial" style="width:89%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Final-mile checklist</div><span class="pill warn">7 pending</span></div>
+      <div class="card-body">
+        <div class="check done"><div class="check-box"></div><div class="check-label">EMD demand draft prepared · ₹16.6 Cr</div></div>
+        <div class="check done"><div class="check-box"></div><div class="check-label">Power of Attorney notarized</div></div>
+        <div class="check done"><div class="check-box"></div><div class="check-label">Tender fee payment receipt attached</div></div>
+        <div class="check"><div class="check-box"></div><div class="check-label">Bank Guarantee validity confirmed (Axis Bank)</div></div>
+        <div class="check done"><div class="check-box"></div><div class="check-label">Pre-bid clarification responses reviewed</div></div>
+        <div class="check"><div class="check-box"></div><div class="check-label">Board resolution signed by directors</div></div>
+        <div class="check"><div class="check-box"></div><div class="check-label">JV agreement legal review complete</div></div>
+        <div class="check"><div class="check-box"></div><div class="check-label">Physical submission logistics (courier to BMC HQ)</div></div>
+        <div class="check"><div class="check-box"></div><div class="check-label">Project Director authorization</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-head">
+      <div class="card-title">Bid health radar · final review</div>
+      <span class="pill ai">Composite 84 / 100</span>
+    </div>
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;padding:24px">
+      <svg viewBox="0 0 400 280" style="width:100%;max-width:500px;height:280px">
+        <!-- radar grid -->
+        <g transform="translate(200, 140)">
+          <polygon points="0,-110 95,-55 95,55 0,110 -95,55 -95,-55" fill="none" stroke="#26262c"/>
+          <polygon points="0,-82.5 71.3,-41.3 71.3,41.3 0,82.5 -71.3,41.3 -71.3,-41.3" fill="none" stroke="#26262c"/>
+          <polygon points="0,-55 47.5,-27.5 47.5,27.5 0,55 -47.5,27.5 -47.5,-27.5" fill="none" stroke="#26262c"/>
+          <polygon points="0,-27.5 23.8,-13.8 23.8,13.8 0,27.5 -23.8,13.8 -23.8,-13.8" fill="none" stroke="#26262c"/>
+          <!-- axes -->
+          <line x1="0" y1="0" x2="0" y2="-110" stroke="#26262c"/>
+          <line x1="0" y1="0" x2="95" y2="-55" stroke="#26262c"/>
+          <line x1="0" y1="0" x2="95" y2="55" stroke="#26262c"/>
+          <line x1="0" y1="0" x2="0" y2="110" stroke="#26262c"/>
+          <line x1="0" y1="0" x2="-95" y2="55" stroke="#26262c"/>
+          <line x1="0" y1="0" x2="-95" y2="-55" stroke="#26262c"/>
+          <!-- data: Tech 72, Comm 84, Sched 68, Counterparty 91, Compliance 96, Margin 76 -->
+          <polygon points="0,-79.2 79.8,-46.2 64.6,37.4 0,105.6 -90.5,53.6 -72.2,-41.8" fill="rgba(245,158,11,0.25)" stroke="#f59e0b" stroke-width="2"/>
+          <!-- vertices -->
+          <circle cx="0" cy="-79.2" r="3" fill="#f59e0b"/>
+          <circle cx="79.8" cy="-46.2" r="3" fill="#f59e0b"/>
+          <circle cx="64.6" cy="37.4" r="3" fill="#f59e0b"/>
+          <circle cx="0" cy="105.6" r="3" fill="#f59e0b"/>
+          <circle cx="-90.5" cy="53.6" r="3" fill="#f59e0b"/>
+          <circle cx="-72.2" cy="-41.8" r="3" fill="#f59e0b"/>
+          <!-- labels -->
+          <text x="0" y="-122" fill="#9a9aa3" font-size="11" text-anchor="middle">Technical (72)</text>
+          <text x="115" y="-60" fill="#9a9aa3" font-size="11">Commercial (84)</text>
+          <text x="115" y="65" fill="#9a9aa3" font-size="11">Schedule (68)</text>
+          <text x="0" y="128" fill="#9a9aa3" font-size="11" text-anchor="middle">Counterparty (91)</text>
+          <text x="-115" y="65" fill="#9a9aa3" font-size="11" text-anchor="end">Compliance (96)</text>
+          <text x="-115" y="-60" fill="#9a9aa3" font-size="11" text-anchor="end">Margin (76)</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="left">
+    <span class="health">All agents healthy</span>
+    <span>Rate library v2.4.1 · 1,237 master rates</span>
+    <span>184 past projects indexed</span>
+  </div>
+  <div>BidForge v0.7 · GMLR Phase IV demo</div>
+</div>
+
+<script>
+  // ============== Stage navigation ==============
+  const stages = document.querySelectorAll('.stage');
+  const contents = document.querySelectorAll('.stage-content');
+  const agentPanel = document.getElementById('agent-panel');
+
+  const agentByStage = {
+    1: {
+      icon: '📥',
+      name: 'Intake Agent',
+      msg: 'Parsing 384-page RFP · extracted 1,240 BOQ items in <span class="hl">2 min 14 sec</span> · 7 deviations flagged for senior review',
+      actions: [
+        { label: 'View extraction log', kind: '' },
+        { label: 'Raise pre-bid query', kind: 'primary' }
+      ]
+    },
+    2: {
+      icon: '✅',
+      name: 'Eligibility Agent',
+      msg: 'Verifying HCC capability against 5 eligibility criteria · cross-referenced past projects · <span class="hl">recommendation: GO</span>',
+      actions: [
+        { label: 'View competitive analysis', kind: '' },
+        { label: 'Approve Go/No-Go', kind: 'primary' }
+      ]
+    },
+    3: {
+      icon: '🧮',
+      name: 'Estimation Agent',
+      msg: 'Built rate analysis for 1,240 line items · pulled benchmarks from 5 comparable HCC projects · <span class="hl">margin pressure flagged</span>',
+      actions: [
+        { label: 'Explore rescoping options', kind: '' },
+        { label: 'Lock estimate', kind: 'primary' }
+      ]
+    },
+    4: {
+      icon: '⚠️',
+      name: 'Risk & Resource Agents',
+      msg: '8 risks identified · 5 open with ₹268 Cr exposure · manpower S-curve built · <span class="hl">9% contingency recommended</span>',
+      actions: [
+        { label: 'Open risk mitigation playbook', kind: '' },
+        { label: 'Approve risk plan', kind: 'primary' }
+      ]
+    },
+    5: {
+      icon: '✍️',
+      name: 'Drafting Agent',
+      msg: '12 of 14 proposal docs drafted using past HCC submissions · methodology auto-populated · <span class="hl">JV agreement template ready</span>',
+      actions: [
+        { label: 'Preview proposal', kind: '' },
+        { label: 'Send for review', kind: 'primary' }
+      ]
+    },
+    6: {
+      icon: '📋',
+      name: 'Compliance Agent',
+      msg: '311 compliance checks complete · 6 flagged · bid pack ready for ZIP export · <span class="hl">awaiting director authorization</span>',
+      actions: [
+        { label: 'View flagged items', kind: '' },
+        { label: 'Authorize submission', kind: 'ok' }
+      ]
+    }
+  };
+
+  function renderAgent(stage) {
+    const a = agentByStage[stage];
+    const actionsHtml = a.actions.map(act => '<button class="btn ' + act.kind + '">' + act.label + '</button>').join('');
+    agentPanel.innerHTML =
+      '<div class="agent-icon">' + a.icon + '</div>' +
+      '<div class="agent-info">' +
+        '<div class="agent-name"><span class="dot"></span>' + a.name + ' · active now</div>' +
+        '<div class="agent-msg">' + a.msg + '</div>' +
+      '</div>' +
+      '<div class="agent-actions">' + actionsHtml + '</div>';
+  }
+
+  function switchStage(stage) {
+    stages.forEach(s => {
+      const n = parseInt(s.getAttribute('data-stage'));
+      s.classList.remove('active', 'done');
+      if (n < stage) s.classList.add('done');
+      if (n === stage) s.classList.add('active');
+    });
+    contents.forEach(c => c.classList.remove('active'));
+    document.getElementById('content-' + stage).classList.add('active');
+    renderAgent(stage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  stages.forEach(s => {
+    s.addEventListener('click', () => {
+      const stage = parseInt(s.getAttribute('data-stage'));
+      switchStage(stage);
+    });
+  });
+
+  // initial
+  renderAgent(1);
+</script>
+
+</body>
+</html>
